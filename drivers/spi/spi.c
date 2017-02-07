@@ -1178,7 +1178,7 @@ static void spi_pump_messages(struct kthread_work *work)
 
 static int spi_init_queue(struct spi_master *master)
 {
-	struct sched_param param = { .sched_priority = MAX_RT_PRIO - 1 };
+	struct sched_param param = { .sched_priority = master->rt_prio };
 
 	master->running = false;
 	master->busy = false;
@@ -1200,9 +1200,10 @@ static int spi_init_queue(struct spi_master *master)
 	 * request and the scheduling of the message pump thread. Without this
 	 * setting the message pump thread will remain at default priority.
 	 */
-	if (master->rt) {
+	if (master->rt_prio >= 0 && master->rt_prio < MAX_RT_PRIO) {
 		dev_info(&master->dev,
-			"will run message pump with realtime priority\n");
+			 "will run message pump with realtime priority %d\n",
+			 master->rt_prio);
 		sched_setscheduler(master->kworker_task, SCHED_FIFO, &param);
 	}
 
@@ -1703,6 +1704,7 @@ struct spi_master *spi_alloc_master(struct device *dev, unsigned size)
 
 	device_initialize(&master->dev);
 	master->bus_num = -1;
+	master->rt_prio = -1;
 	master->num_chipselect = 1;
 	master->dev.class = &spi_master_class;
 	master->dev.parent = dev;

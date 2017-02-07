@@ -328,11 +328,11 @@ static inline void spi_unregister_driver(struct spi_driver *sdrv)
  * @xfer_completion: used by core transfer_one_message()
  * @busy: message pump is busy
  * @running: message pump is running
- * @rt: whether this queue is set to run as a realtime task
  * @auto_runtime_pm: the core should ensure a runtime PM reference is held
  *                   while the hardware is prepared, using the parent
  *                   device for the spidev
  * @max_dma_len: Maximum length of a DMA transfer for the device.
+ * @rt_prio: realtime priority of the message pump (-1 to use default prio)
  * @prepare_transfer_hardware: a message will soon arrive from the queue
  *	so the subsystem requests the driver to prepare the transfer hardware
  *	by issuing this call
@@ -492,12 +492,12 @@ struct spi_master {
 	bool				idling;
 	bool				busy;
 	bool				running;
-	bool				rt;
 	bool				auto_runtime_pm;
 	bool                            cur_msg_prepared;
 	bool				cur_msg_mapped;
 	struct completion               xfer_completion;
 	size_t				max_dma_len;
+	int				rt_prio;
 
 	int (*prepare_transfer_hardware)(struct spi_master *master);
 	int (*transfer_one_message)(struct spi_master *master,

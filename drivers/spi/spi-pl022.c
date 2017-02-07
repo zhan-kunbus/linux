@@ -2160,8 +2160,10 @@ static int pl022_probe(struct amba_device *adev, const struct amba_id *id)
 	master->auto_runtime_pm = true;
 	master->transfer_one_message = pl022_transfer_one_message;
 	master->unprepare_transfer_hardware = pl022_unprepare_transfer_hardware;
-	master->rt = platform_info->rt;
 	master->dev.of_node = dev->of_node;
+
+	if (platform_info->rt)
+		master->rt_prio = MAX_RT_PRIO - 1;
 
 	if (platform_info->num_chipselect && platform_info->chipselects) {
 		for (i = 0; i < num_cs; i++)
