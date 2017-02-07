@@ -10,6 +10,10 @@ Required properties:
 - interrupts: Should contain interrupt.
 - clocks: The clock feeding the SPI controller.
 
+Optional properties:
+- bcm2835,rt_prio: Realtime priority of the message pump to minimize latency
+                   on the bus (0..99).
+
 Example:
 
 spi@20204000 {

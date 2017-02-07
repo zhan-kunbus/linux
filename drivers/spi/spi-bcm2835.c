@@ -725,6 +725,8 @@ static int bcm2835_spi_probe(struct platform_device *pdev)
 	master->handle_err = bcm2835_spi_handle_err;
 	master->prepare_message = bcm2835_spi_prepare_message;
 	master->dev.of_node = pdev->dev.of_node;
+	of_property_read_u32(pdev->dev.of_node,
+			     "bcm2835,rt_prio", &master->rt_prio);
 
 	bs = spi_master_get_devdata(master);
 
