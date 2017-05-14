@@ -8296,6 +8296,8 @@ F:	Documentation/devicetree/bindings/mux/
 F:	include/linux/dt-bindings/mux/
 F:	include/linux/mux/
 F:	drivers/mux/
+F:	Documentation/devicetree/bindings/mux/
+F:	include/linux/dt-bindings/mux/
 
 MULTISOUND SOUND DRIVER
 M:	Andrew Veliath <andrewtv@usa.net>
