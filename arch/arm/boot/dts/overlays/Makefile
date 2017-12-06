@@ -85,6 +85,13 @@ dtbo-$(CONFIG_ARCH_BCM2835) += \
 	pwm-2chan.dtbo \
 	qca7000.dtbo \
 	raspidac3.dtbo \
+	revpi-compact.dtbo \
+	revpi-compact-dt-blob.dtbo \
+	revpi-connect.dtbo \
+	revpi-connect-dt-blob.dtbo \
+	revpi-con-can.dtbo \
+	revpi-core.dtbo \
+	revpi-core-dt-blob.dtbo \
 	rotary-encoder.dtbo \
 	rpi-backlight.dtbo \
 	rpi-cirrus-wm5102.dtbo \
