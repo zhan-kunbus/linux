@@ -1877,9 +1877,11 @@ static inline void acpi_register_spi_devices(struct spi_controller *ctlr) {}
 static void spi_controller_release(struct device *dev)
 {
 	struct spi_controller *ctlr;
+	void *devdata;
 
 	ctlr = container_of(dev, struct spi_controller, dev);
-	kfree(ctlr);
+	devdata = spi_controller_get_devdata(ctlr);
+	kfree(devdata);
 }
 
 static struct class spi_master_class = {
@@ -1994,8 +1996,10 @@ extern struct class spi_slave_class;	/* dummy */
  * __spi_alloc_controller - allocate an SPI master or slave controller
  * @dev: the controller, possibly using the platform_bus
  * @size: how much zeroed driver-private data to allocate; the pointer to this
- *	memory is in the driver_data field of the returned device,
- *	accessible with spi_controller_get_devdata().
+ *	memory is in the driver_data field of the returned device, accessible
+ *	with spi_controller_get_devdata(); the memory is cacheline aligned;
+ *	drivers granting DMA access to portions of their private data need to
+ *	round up @size using ALIGN(size, dma_get_cache_alignment()).
  * @slave: flag indicating whether to allocate an SPI master (false) or SPI
  *	slave (true) controller
  * Context: can sleep
@@ -2017,14 +2021,16 @@ struct spi_controller *__spi_alloc_controller(struct device *dev,
 					      unsigned int size, bool slave)
 {
 	struct spi_controller	*ctlr;
+	void *devdata;
 
 	if (!dev)
 		return NULL;
 
-	ctlr = kzalloc(size + sizeof(*ctlr), GFP_KERNEL);
-	if (!ctlr)
+	devdata = kzalloc(size + sizeof(*ctlr), GFP_KERNEL);
+	if (!devdata)
 		return NULL;
 
+	ctlr = devdata + size;
 	device_initialize(&ctlr->dev);
 	ctlr->bus_num = -1;
 	ctlr->num_chipselect = 1;
@@ -2035,7 +2041,7 @@ struct spi_controller *__spi_alloc_controller(struct device *dev,
 		ctlr->dev.class = &spi_master_class;
 	ctlr->dev.parent = dev;
 	pm_suspend_ignore_children(&ctlr->dev, true);
-	spi_controller_set_devdata(ctlr, &ctlr[1]);
+	spi_controller_set_devdata(ctlr, devdata);
 
 	return ctlr;
 }
