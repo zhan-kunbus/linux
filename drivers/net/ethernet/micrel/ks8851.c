@@ -74,7 +74,7 @@ union ks8851_tx_hdr {
  * @statelock: Lock on this structure for tx list.
  * @mii: The MII state information for the mii calls.
  * @rxctrl: RX settings for @rxctrl_work.
- * @tx_work: Work queue for tx packets
+ * @tx_thread: Thread for sending TX packets.
  * @rxctrl_work: Work queue for updating RX mode and multicast lists
  * @txq: Queue of packets for transmission.
  * @spi_msg1: pre-setup SPI transfer with one message, @spi_xfer1.
@@ -129,7 +129,7 @@ struct ks8851_net {
 	struct mii_if_info	mii;
 	struct ks8851_rxctrl	rxctrl;
 
-	struct work_struct	tx_work;
+	struct task_struct	*tx_thread;
 	struct work_struct	rxctrl_work;
 
 	struct sk_buff_head	txq;
@@ -793,14 +793,13 @@ static void ks8851_done_tx(struct ks8851_net *ks, struct sk_buff *txb)
 
 /**
  * ks8851_tx_work - process tx packet(s)
- * @work: The work strucutre what was scheduled.
+ * @ks: The device state.
  *
  * This is called when a number of packets have been scheduled for
  * transmission and need to be sent to the device.
  */
-static void ks8851_tx_work(struct work_struct *work)
+static void ks8851_tx_work(struct ks8851_net *ks)
 {
-	struct ks8851_net *ks = container_of(work, struct ks8851_net, tx_work);
 	struct sk_buff *txb;
 	bool last = skb_queue_empty(&ks->txq);
 
@@ -821,6 +820,27 @@ static void ks8851_tx_work(struct work_struct *work)
 	}
 
 	mutex_unlock(&ks->lock);
+}
+
+static int ks8851_tx_thread(void *data)
+{
+	struct ks8851_net *ks = data;
+
+	while (true) {
+		ks8851_tx_work(ks);
+		set_current_state(TASK_IDLE);
+		if (kthread_should_stop()) {
+			__set_current_state(TASK_RUNNING);
+			break;
+		}
+		if (!skb_queue_empty(&ks->txq)) {
+			__set_current_state(TASK_RUNNING);
+			continue;
+		}
+		schedule();
+	}
+
+	return 0;
 }
 
 /**
@@ -854,6 +874,14 @@ static int ks8851_net_open(struct net_device *dev)
 		param.sched_priority = MAX_USER_RT_PRIO/2;
 		sched_setscheduler_nocheck(ks->irqpoll, SCHED_FIFO, &param);
 	}
+
+	ks->tx_thread = kthread_create(&ks8851_tx_thread, ks, "ks8851_tx");
+	if (IS_ERR(ks->tx_thread)) {
+		netdev_err(dev, "failed to create tx thread\n");
+		ret = PTR_ERR(ks->tx_thread);
+		goto err_tx_thread;
+	}
+	set_task_state(ks->tx_thread, TASK_IDLE);
 
 	/* lock the card, even if we may not actually be doing anything
 	 * else at the moment */
@@ -923,6 +951,13 @@ static int ks8851_net_open(struct net_device *dev)
 	mutex_unlock(&ks->lock);
 	mii_check_link(&ks->mii);
 	return 0;
+
+err_tx_thread:
+	if (dev->irq > 0)
+		free_irq(dev->irq, ks);
+	else
+		kthread_stop(ks->irqpoll);
+	return ret;
 }
 
 /**
@@ -948,7 +983,7 @@ static int ks8851_net_stop(struct net_device *dev)
 	mutex_unlock(&ks->lock);
 
 	/* stop any outstanding work */
-	flush_work(&ks->tx_work);
+	kthread_stop(ks->tx_thread);
 	flush_work(&ks->rxctrl_work);
 
 	mutex_lock(&ks->lock);
@@ -1014,7 +1049,7 @@ static netdev_tx_t ks8851_start_xmit(struct sk_buff *skb,
 	}
 
 	spin_unlock(&ks->statelock);
-	schedule_work(&ks->tx_work);
+	wake_up_process(ks->tx_thread);
 
 	return ret;
 }
@@ -1542,7 +1577,6 @@ static int ks8851_probe(struct spi_device *spi)
 	mutex_init(&ks->lock);
 	spin_lock_init(&ks->statelock);
 
-	INIT_WORK(&ks->tx_work, ks8851_tx_work);
 	INIT_WORK(&ks->rxctrl_work, ks8851_rxctrl_work);
 
 	/* initialise pre-made spi transfer messages */
