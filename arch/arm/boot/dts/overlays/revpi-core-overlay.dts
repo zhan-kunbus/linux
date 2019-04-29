@@ -162,6 +162,19 @@
 		};
 	};
 
+	fragment@7 {
+		target = <&uart0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			pibridge {
+				compatible = "kunbus,pibridge";
+				current-speed = <115200>;
+			};
+		};
+	};
+
 	__overrides__ {
 		eth0_mac_hi = <&eth0>,"local-mac-address:0";
 		eth0_mac_lo = <&eth0>,"local-mac-address;4";
