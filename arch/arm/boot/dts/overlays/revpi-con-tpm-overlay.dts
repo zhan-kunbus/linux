@@ -1,0 +1,66 @@
+/*
+ * Device tree overlay for Revolution Pi by KUNBUS
+ *
+ * RevPi CON TPM
+ */
+
+/dts-v1/;
+/plugin/;
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/pinctrl/bcm2835.h>
+
+/{
+	compatible = "brcm,bcm2837";
+
+	fragment@0 {
+		target = <&gpio>;
+		__overlay__ {
+			spi1_pins: spi1_pins {
+				/* miso mosi clock */
+				brcm,pins     = <19 20 21>;
+				brcm,function = <BCM2835_FSEL_ALT4>;
+				brcm,pull     = <BCM2835_PUD_OFF>;
+			};
+			spi1_cs_pins: spi1_cs_pins {
+				/* tpm */
+				brcm,pins     = <18>;
+				brcm,function = <BCM2835_FSEL_GPIO_OUT>;
+				brcm,pull     = <BCM2835_PUD_OFF>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&spi1>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi1_pins &spi1_cs_pins>;
+			cs-gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
+			status = "okay";
+
+			tpm: tpm@0 {
+				compatible = "tcg,tpm_tis-spi";
+				reg = <0>;
+				spi-max-frequency = <100000>;	/* <= 43 MHz */
+				interrupt-parent = <&gpio>;
+				#interrupt-cells = <2>;
+				interrupts = <22 IRQ_TYPE_LEVEL_LOW>;
+				status = "okay";
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&aux>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	__overrides__ {
+		tpmfreq = <&tpm>,"spi-max-frequency:0";
+	};
+};
