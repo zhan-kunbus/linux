@@ -3211,10 +3211,10 @@ int dev_loopback_xmit(struct net *net, struct sock *sk, struct sk_buff *skb)
 }
 EXPORT_SYMBOL(dev_loopback_xmit);
 
-#ifdef CONFIG_NET_EGRESS
 static struct sk_buff *
 sch_handle_egress(struct sk_buff *skb, int *ret, struct net_device *dev)
 {
+#ifdef CONFIG_NET_CLS_ACT
 	struct tcf_proto *cl = rcu_dereference_bh(dev->egress_cl_list);
 	struct tcf_result cl_res;
 
@@ -3249,10 +3249,22 @@ sch_handle_egress(struct sk_buff *skb, int *ret, struct net_device *dev)
 	default:
 		break;
 	}
-
+#endif /* CONFIG_NET_CLS_ACT */
 	return skb;
 }
-#endif /* CONFIG_NET_EGRESS */
+
+static int nf_egress(struct sk_buff *skb)
+{
+	if (nf_hook_egress_active(skb)) {
+		int ret;
+
+		rcu_read_lock();
+		ret = nf_hook_egress(skb);
+		rcu_read_unlock();
+		return ret;
+	}
+	return 0;
+}
 
 static inline int get_xps_queue(struct net_device *dev, struct sk_buff *skb)
 {
@@ -3383,13 +3395,16 @@ static int __dev_queue_xmit(struct sk_buff *skb, void *accel_priv)
 	qdisc_pkt_len_init(skb);
 #ifdef CONFIG_NET_CLS_ACT
 	skb->tc_verd = SET_TC_AT(skb->tc_verd, AT_EGRESS);
-# ifdef CONFIG_NET_EGRESS
+#endif
+#ifdef CONFIG_NET_EGRESS
 	if (static_key_false(&egress_needed)) {
 		skb = sch_handle_egress(skb, &rc, dev);
 		if (!skb)
 			goto out;
+
+		if (nf_egress(skb) < 0)
+			goto out;
 	}
-# endif
 #endif
 	/* If device/qdisc don't need skb->dst, release it right now while
 	 * its hot in this cpu cache.
