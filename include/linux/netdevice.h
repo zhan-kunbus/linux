@@ -1575,6 +1575,7 @@ enum netdev_priv_flags {
  *	@rx_handler:		handler for received packets
  *	@rx_handler_data: 	XXX: need comments on this one
  *	@ingress_queue:		XXX: need comments on this one
+ *	@nf_hooks_ingress:	netfilter hooks executed for ingress packets
  *	@broadcast:		hw bcast address
  *
  *	@rx_cpu_rmap:	CPU reverse-mapping for RX completion interrupts,
