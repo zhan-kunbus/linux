@@ -164,10 +164,6 @@ struct bcm2835_desc {
 #define BCM2835_DMA_S_DREQ	BIT(10) /* enable SREQ for source */
 #define BCM2835_DMA_S_IGNORE	BIT(11) /* ignore source reads - read 0 */
 #define BCM2835_DMA_BURST_LENGTH(x) ((x & 15) << 12)
-#define BCM2835_DMA_CS_FLAGS(x) (x & (BCM2835_DMA_PRIORITY(15) | \
-				      BCM2835_DMA_PANIC_PRIORITY(15) | \
-				      BCM2835_DMA_WAIT_FOR_WRITES | \
-				      BCM2835_DMA_DIS_DEBUG))
 #define BCM2835_DMA_PER_MAP(x)	((x & 31) << 16) /* REQ source */
 #define BCM2835_DMA_WAIT(x)	((x & 31) << 21) /* add DMA-wait cycles */
 #define BCM2835_DMA_NO_WIDE_BURSTS BIT(26) /* no 2 beat write bursts */
@@ -232,10 +228,6 @@ struct bcm2835_desc {
 #define BCM2838_DMA40_DISDEBUG		BIT(29)
 #define BCM2838_DMA40_ABORT		BIT(30)
 #define BCM2838_DMA40_HALT		BIT(31)
-#define BCM2838_DMA40_CS_FLAGS(x) (x & (BCM2838_DMA40_QOS(15) | \
-					BCM2838_DMA40_PANIC_QOS(15) | \
-					BCM2838_DMA40_WAIT_FOR_WRITES |	\
-					BCM2838_DMA40_DISDEBUG))
 
 /* Transfer information bits */
 #define BCM2838_DMA40_INTEN		BIT(0)
@@ -667,12 +659,10 @@ static void bcm2835_dma_start_desc(struct bcm2835_chan *c)
 	if (c->is_40bit_channel) {
 		writel(to_bcm2838_cbaddr(d->cb_list[0].paddr),
 		       c->chan_base + BCM2838_DMA40_CB);
-		writel(BCM2838_DMA40_ACTIVE | BCM2838_DMA40_CS_FLAGS(c->dreq),
-		       c->chan_base + BCM2838_DMA40_CS);
+		writel(BCM2838_DMA40_ACTIVE, c->chan_base + BCM2838_DMA40_CS);
 	} else {
 		writel(d->cb_list[0].paddr, c->chan_base + BCM2835_DMA_ADDR);
-		writel(BCM2835_DMA_ACTIVE | BCM2835_DMA_CS_FLAGS(c->dreq),
-		       c->chan_base + BCM2835_DMA_CS);
+		writel(BCM2835_DMA_ACTIVE, c->chan_base + BCM2835_DMA_CS);
 	}
 }
 
@@ -700,9 +690,7 @@ static irqreturn_t bcm2835_dma_callback(int irq, void *data)
 	 * if this IRQ handler is threaded.) If the channel is finished, it
 	 * will remain idle despite the ACTIVE flag being set.
 	 */
-	writel(BCM2835_DMA_INT | BCM2835_DMA_ACTIVE |
-	       (c->is_40bit_channel ? BCM2838_DMA40_CS_FLAGS(c->dreq) :
-		BCM2835_DMA_CS_FLAGS(c->dreq)),
+	writel(BCM2835_DMA_INT | BCM2835_DMA_ACTIVE,
 	       c->chan_base + BCM2835_DMA_CS);
 
 	d = c->desc;
