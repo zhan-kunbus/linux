@@ -1070,6 +1070,8 @@ static int brcmf_bus_started(struct brcmf_pub *drvr, struct cfg80211_ops *ops)
 		goto fail;
 	}
 
+	memcpy(ifp->mac_addr, drvr->settings->bus.sdio.of_mac, ETH_ALEN);
+
 	ret = brcmf_net_attach(ifp, false);
 
 	if ((!ret) && (drvr->settings->p2p_enable)) {

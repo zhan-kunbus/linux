@@ -97,6 +97,7 @@ struct brcmfmac_sdio_pd {
 	bool		broken_sg_support;
 	unsigned short	sd_head_align;
 	unsigned short	sd_sgentry_align;
+	u8		of_mac[ETH_ALEN];
 	void		(*reset)(void);
 };
 

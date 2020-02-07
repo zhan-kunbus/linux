@@ -19,6 +19,7 @@
 #include <linux/netdevice.h>
 #include <linux/module.h>
 #include <linux/firmware.h>
+#include <linux/of_net.h>
 #include <brcmu_wifi.h>
 #include <brcmu_utils.h>
 #include "core.h"
@@ -400,6 +401,7 @@ static void brcmf_mp_attach(void)
 	}
 }
 
+
 struct brcmf_mp_device *brcmf_get_module_param(struct device *dev,
 					       enum brcmf_bus_type bus_type,
 					       u32 chip, u32 chiprev)
@@ -408,6 +410,7 @@ struct brcmf_mp_device *brcmf_get_module_param(struct device *dev,
 	struct brcmfmac_pd_device *device_pd;
 	bool found;
 	int i;
+	const u8 *of_mac;
 
 	brcmf_dbg(INFO, "Enter, bus=%d, chip=%d, rev=%d\n", bus_type, chip,
 		  chiprev);
@@ -449,10 +452,20 @@ struct brcmf_mp_device *brcmf_get_module_param(struct device *dev,
 			}
 		}
 	}
+
 	if (!found) {
 		/* No platform data for this device, try OF (Open Firwmare) */
 		brcmf_of_probe(dev, bus_type, settings);
 	}
+
+	of_mac = of_get_mac_address(dev->of_node);
+	if (of_mac) {
+		memcpy(&settings->bus.sdio.of_mac, of_mac, ETH_ALEN);
+		pr_debug("of_mac:%x %x %x %x %x %x\n",
+					of_mac[0], of_mac[1], of_mac[2],
+					of_mac[3], of_mac[4], of_mac[5]);
+	}
+
 	return settings;
 }
 

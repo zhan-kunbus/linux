@@ -74,4 +74,5 @@ void brcmf_release_module_param(struct brcmf_mp_device *module_param);
 /* Sets dongle media info (drv_version, mac address). */
 int brcmf_c_preinit_dcmds(struct brcmf_if *ifp);
 
+void *brcmf_get_of_mac(struct brcmf_pub *drvr);
 #endif /* BRCMFMAC_COMMON_H */
