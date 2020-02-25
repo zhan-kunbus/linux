@@ -1342,6 +1342,7 @@
             pin@p53 { function = "sdcard"; termination = "pull_up";    drive_strength_mA = < 8 >; }; // SD D3
             pin@p128 { function = "input";  termination = "no_pulling"; polarity = "active_low"; }; // Hotplug
             pin@p129 { function = "output"; termination = "no_pulling"; polarity = "active_low"; }; // EMMC_ENABLE_N
+            pin@p4 { function = "output"; termination = "no_pulling"; startup_state = "inactive"; }; // RevPi Connect GPIO Mux
             pin@p39 { function = "spi"; termination = "no_pulling"; drive_strength_mA = < 8 >; }; // RevPi Connect SPI0 CLK
          }; // pin_config
 
