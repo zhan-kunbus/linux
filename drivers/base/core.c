@@ -1921,6 +1921,14 @@ int device_add(struct device *dev)
 	pr_debug("device: '%s': %s\n", dev_name(dev), __func__);
 
 	parent = get_device(dev->parent);
+	if (parent) {
+		down_read(&parent->p->dead_sem);
+		if (parent->p->dead) {
+			error = -ENODEV;
+			goto parent_error;
+		}
+	}
+
 	kobj = get_device_parent(dev, parent);
 	if (IS_ERR(kobj)) {
 		error = PTR_ERR(kobj);
@@ -1984,9 +1992,11 @@ int device_add(struct device *dev)
 
 	kobject_uevent(&dev->kobj, KOBJ_ADD);
 	bus_probe_device(dev);
-	if (parent)
+	if (parent) {
 		klist_add_tail(&dev->p->knode_parent,
 			       &parent->p->klist_children);
+		up_read(&parent->p->dead_sem);
+	}
 
 	if (dev->class) {
 		mutex_lock(&dev->class->p->mutex);
@@ -2025,6 +2035,8 @@ done:
  Error:
 	cleanup_glue_dir(dev, glue_dir);
 parent_error:
+	if (parent)
+		up_read(&parent->p->dead_sem);
 	put_device(parent);
 name_error:
 	kfree(dev->p);
