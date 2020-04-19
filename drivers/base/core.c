@@ -1855,6 +1855,7 @@ static int device_private_init(struct device *dev)
 	klist_init(&dev->p->klist_children, klist_children_get,
 		   klist_children_put);
 	INIT_LIST_HEAD(&dev->p->deferred_probe);
+	init_rwsem(&dev->p->dead_sem);
 	return 0;
 }
 
@@ -2085,19 +2086,15 @@ EXPORT_SYMBOL_GPL(put_device);
 
 bool kill_device(struct device *dev)
 {
-	/*
-	 * Require the device lock and set the "dead" flag to guarantee that
-	 * the update behavior is consistent with the other bitfields near
-	 * it and that we cannot have an asynchronous probe routine trying
-	 * to run while we are tearing out the bus/class/sysfs from
-	 * underneath the device.
-	 */
-	lockdep_assert_held(&dev->mutex);
+	bool ret = true;
 
+	down_write(&dev->p->dead_sem);
 	if (dev->p->dead)
-		return false;
+		ret = false;
 	dev->p->dead = true;
-	return true;
+	up_write(&dev->p->dead_sem);
+
+	return ret;
 }
 EXPORT_SYMBOL_GPL(kill_device);
 

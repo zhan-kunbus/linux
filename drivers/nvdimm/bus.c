@@ -553,10 +553,7 @@ void nd_device_unregister(struct device *dev, enum nd_async_mode mode)
 		 * or otherwise let the async path handle it if the
 		 * unregistration was already queued.
 		 */
-		device_lock(dev);
 		killed = kill_device(dev);
-		device_unlock(dev);
-
 		if (!killed)
 			return;
 

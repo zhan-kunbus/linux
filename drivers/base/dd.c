@@ -759,6 +759,7 @@ static void __device_attach_async_helper(void *_dev, async_cookie_t cookie)
 	};
 
 	device_lock(dev);
+	down_read(&dev->p->dead_sem);
 
 	/*
 	 * Check if device has already been removed or claimed. This may
@@ -780,6 +781,7 @@ static void __device_attach_async_helper(void *_dev, async_cookie_t cookie)
 	if (dev->parent)
 		pm_runtime_put(dev->parent);
 out_unlock:
+	up_read(&dev->p->dead_sem);
 	device_unlock(dev);
 
 	put_device(dev);
@@ -892,8 +894,10 @@ static int __driver_attach(struct device *dev, void *data)
 	if (dev->parent && dev->bus->need_parent_lock)
 		device_lock(dev->parent);
 	device_lock(dev);
+	down_read(&dev->p->dead_sem);
 	if (!dev->p->dead && !dev->driver)
 		driver_probe_device(drv, dev);
+	up_read(&dev->p->dead_sem);
 	device_unlock(dev);
 	if (dev->parent && dev->bus->need_parent_lock)
 		device_unlock(dev->parent);

@@ -64,6 +64,8 @@ struct driver_private {
  *	binding of drivers which were unable to get all the resources needed by
  *	the device; typically because it depends on another driver getting
  *	probed first.
+ * @dead_sem - semaphore taken when declaring the device @dead to serialize
+ *	with asynchronous driver probing.
  * @device - pointer back to the struct device that this structure is
  * associated with.
  * @dead - This device is currently either in the process of or has been
@@ -78,6 +80,7 @@ struct device_private {
 	struct klist_node knode_driver;
 	struct klist_node knode_bus;
 	struct list_head deferred_probe;
+	struct rw_semaphore dead_sem;
 	struct device *device;
 	u8 dead:1;
 };
