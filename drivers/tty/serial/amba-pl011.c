@@ -1537,10 +1537,13 @@ static int pl011_rs485_tx_stop(struct uart_amba_port *uap)
 	}
 
 	if (port->rs485.delay_rts_after_send) {
+		long state = current->state;
+
 		msleep(port->rs485.delay_rts_after_send);
+		/* msleep() changes TASK_IDLE to TASK_RUNNING */
+		set_current_state(state);
 	}
 
-	set_current_state(TASK_IDLE); /* msleep() resets to TASK_RUNNING */
 
 	if ((!uart_circ_empty(xmit) && !uart_tx_stopped(port))
 	    || port->x_char)
