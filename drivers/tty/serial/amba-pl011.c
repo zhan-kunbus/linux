@@ -1791,7 +1791,7 @@ static int pl011_pio_startup(struct uart_amba_port *uap)
 	if (IS_ERR(uap->pio_rx))
 		return PTR_ERR(uap->pio_rx);
 
-	retval = sched_setscheduler(uap->pio_rx, SCHED_FIFO, &param);
+	retval = sched_setscheduler_nocheck(uap->pio_rx, SCHED_FIFO, &param);
 	if (retval)
 		goto stop_pio_rx;
 
@@ -1801,7 +1801,7 @@ static int pl011_pio_startup(struct uart_amba_port *uap)
 		goto stop_pio_rx;
 	}
 
-	retval = sched_setscheduler(uap->pio_tx, SCHED_FIFO, &param);
+	retval = sched_setscheduler_nocheck(uap->pio_tx, SCHED_FIFO, &param);
 	if (retval)
 		goto stop_pio_tx;
 
